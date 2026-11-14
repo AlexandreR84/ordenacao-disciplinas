@@ -90,14 +90,16 @@ class OrdenacaoKahnTest {
     @Test
     void gradeRealDoCenario4() {
         GrafoDisciplinas g = GrafoDisciplinas.de(Cenarios.gradeReal().disciplinas());
-        assertEquals(20, g.numeroVertices());
-        assertEquals(17, g.numeroArestas());
+        assertEquals(59, g.numeroVertices(), "todos os itens do currículo");
+        assertEquals(42, g.numeroArestas());
         assertTrue(g.ehOrdenacaoValida(kahn.ordenar(g).ordem()));
         assertTrue(g.ehOrdenacaoValida(new OrdenacaoDFS().ordenar(g).ordem()));
         List<List<String>> periodos = kahn.periodos(g);
+        // pelos pré-requisitos bastariam 5 períodos; a grade oficial usa 8
         assertEquals(5, periodos.size());
-        assertEquals(List.of("12566", "90539", "49293", "49291", "49304"), periodos.get(0));
-        assertEquals(List.of("49314"), periodos.get(4), "Projetos de Software II fecha a cadeia mais longa");
+        assertEquals(24, periodos.get(0).size());
+        assertEquals(List.of("49318"), periodos.get(4), "Projetos Integrados II fecha a cadeia mais longa");
+        assertTrue(new ValidadorPeriodos().validar(g).isEmpty(), "os pré-requisitos respeitam os semestres oficiais");
     }
 
     @Test

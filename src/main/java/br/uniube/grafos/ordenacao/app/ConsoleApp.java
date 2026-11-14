@@ -1,5 +1,6 @@
 package br.uniube.grafos.ordenacao.app;
 
+import br.uniube.grafos.ordenacao.algoritmo.ContagemOrdenacoes;
 import br.uniube.grafos.ordenacao.algoritmo.OrdenacaoDFS;
 import br.uniube.grafos.ordenacao.algoritmo.OrdenacaoKahn;
 import br.uniube.grafos.ordenacao.algoritmo.ResultadoOrdenacao;
@@ -7,14 +8,18 @@ import br.uniube.grafos.ordenacao.algoritmo.TodasOrdenacoes;
 import br.uniube.grafos.ordenacao.algoritmo.ValidadorPeriodos;
 import br.uniube.grafos.ordenacao.grafo.GrafoDisciplinas;
 import br.uniube.grafos.ordenacao.modelo.Disciplina;
+import br.uniube.grafos.ordenacao.web.ServidorWeb;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -22,8 +27,9 @@ import java.util.Scanner;
  * Aplicação de console: cadastro de disciplinas, ordenação por Kahn e DFS,
  * comparação, períodos e os três cenários de demonstração.
  *
- * <p>Uso: {@code java -jar ordenacao-disciplinas.jar} (menu) ou
- * {@code java -jar ordenacao-disciplinas.jar --demo} (roda os três cenários).</p>
+ * <p>Uso: {@code java -jar ordenacao-disciplinas.jar} (menu),
+ * {@code java -jar ordenacao-disciplinas.jar --demo} (roda os cenários) ou
+ * {@code java -jar ordenacao-disciplinas.jar --web [porta]} (interface no navegador).</p>
  */
 public class ConsoleApp {
 
@@ -38,7 +44,11 @@ public class ConsoleApp {
         this.saida = out;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        if (args.length > 0 && args[0].equals("--web")) {
+            ServidorWeb.main(Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
         PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
         ConsoleApp app = new ConsoleApp(System.in, out);
         if (args.length > 0 && args[0].equals("--demo")) {
@@ -129,14 +139,26 @@ public class ConsoleApp {
         for (int i = 0; i < cenarios.size(); i++) {
             saida.println((i + 1) + " - " + cenarios.get(i).titulo());
         }
-        String escolha = ler("Cenário: ");
-        int i = Integer.parseInt(escolha == null ? "" : escolha.trim()) - 1;
-        if (i < 0 || i >= cenarios.size()) {
-            throw new IllegalArgumentException("cenário inexistente");
+        String escolha = ler("Cenário (1 a " + cenarios.size() + "): ");
+        int i;
+        try {
+            i = Integer.parseInt(escolha == null ? "" : escolha.trim()) - 1;
+        } catch (NumberFormatException e) {
+            i = -1;
         }
+        if (i < 0 || i >= cenarios.size()) {
+            throw new IllegalArgumentException("cenário inexistente; digite um número de 1 a " + cenarios.size());
+        }
+        Cenarios.Cenario c = cenarios.get(i);
         cadastro.clear();
-        cenarios.get(i).disciplinas().forEach(d -> cadastro.put(d.codigo(), d));
-        saida.println("Carregado: " + cenarios.get(i).titulo());
+        c.disciplinas().forEach(d -> cadastro.put(d.codigo(), d));
+        saida.println();
+        saida.println("Carregado: " + c.titulo());
+        saida.println(c.descricao());
+        saida.println();
+        mostrarGrafo(montarGrafo());
+        saida.println();
+        saida.println("Agora use as opções 4 a 7 para ordenar, comparar e listar as ordenações deste cenário.");
     }
 
     // --------------------------------------------------------- demonstração
@@ -245,8 +267,11 @@ public class ConsoleApp {
             saida.println("Ordenações possíveis: nenhuma.");
             return;
         }
-        String total = todas.size() >= TodasOrdenacoes.LIMITE_PADRAO
-                ? "pelo menos " + todas.size() : String.valueOf(todas.size());
+        // o total exato vem da contagem; a listagem mostra só as primeiras
+        String total = new ContagemOrdenacoes().contar(g)
+                .map(t -> NumberFormat.getIntegerInstance(Locale.of("pt", "BR")).format(t))
+                .orElse(todas.size() >= TodasOrdenacoes.LIMITE_PADRAO
+                        ? "pelo menos " + todas.size() : String.valueOf(todas.size()));
         saida.println("Ordenações possíveis: " + total);
         todas.stream().limit(MAX_ORDENACOES_EXIBIDAS)
                 .forEach(o -> saida.println("  " + String.join(" → ", o)));

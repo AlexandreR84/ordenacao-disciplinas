@@ -89,4 +89,20 @@ class ConsoleAppTest {
         assertTrue(s.contains("Carregado: Cenário 2"));
         assertTrue(s.contains("Ordem inversa de finalização (ordenação topológica): [A, C, E, B, D]"));
     }
+
+    @Test
+    void carregarCenarioMostraOGrafoCarregado() {
+        String s = executar("8\n2\n0\n", false);
+        assertTrue(s.contains("Disciplinas (V = 5):"));
+        assertTrue(s.contains("A → [B, C]"));
+        assertTrue(s.contains("Agora use as opções 4 a 7"));
+    }
+
+    @Test
+    void cenarioInvalidoExplicaOQueDigitar() {
+        String s = executar("8\n\n8\nx\n8\n9\n0\n", false);
+        assertTrue(s.contains("Erro: cenário inexistente; digite um número de 1 a 4"));
+        assertTrue(!s.contains("For input string: \"x\""));
+        assertTrue(s.contains("Até mais!"));
+    }
 }

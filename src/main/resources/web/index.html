@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planejamento Inteligente da Oferta de Disciplinas</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topo">
+  <div class="marca">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="6" cy="16" r="4"/><circle cx="26" cy="7" r="4"/><circle cx="26" cy="25" r="4"/>
+      <path d="M10 14.5 22 8.5M10 17.5 22 23.5"/>
+    </svg>
+    <div>
+      <h1>Planejamento Inteligente da Oferta de Disciplinas</h1>
+      <p>Ordenação topológica com Kahn e DFS · Algoritmos em Grafos · Uniube</p>
+    </div>
+  </div>
+  <div class="acoes-topo">
+    <label class="rotulo-oculto" for="sel-cenario">Cenário de demonstração</label>
+    <select id="sel-cenario">
+      <option value="">Carregar cenário…</option>
+    </select>
+    <button type="button" id="btn-limpar" class="botao secundario">Limpar tudo</button>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="painel">
+    <section class="bloco">
+      <h2 id="titulo-form">Cadastrar disciplina</h2>
+      <form id="form-disc" autocomplete="off" novalidate>
+        <div class="linha-campos">
+          <label class="campo curto">Código
+            <input id="f-codigo" required placeholder="ALG">
+          </label>
+          <label class="campo curto">Período
+            <input id="f-periodo" type="number" min="0" step="1" placeholder="—">
+          </label>
+        </div>
+        <label class="campo">Nome
+          <input id="f-nome" required placeholder="Algoritmos">
+        </label>
+        <label class="campo">Pré-requisitos <span class="dica">códigos separados por vírgula</span>
+          <input id="f-pre" placeholder="ex.: ALG, MAT" list="lista-codigos">
+        </label>
+        <datalist id="lista-codigos"></datalist>
+        <p class="erro-form" id="erro-form" role="alert"></p>
+        <div class="linha-botoes">
+          <button type="submit" class="botao" id="btn-salvar">Adicionar</button>
+          <button type="button" class="botao secundario" id="btn-cancelar" hidden>Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="bloco">
+      <h2>Adicionar dependência</h2>
+      <form id="form-dep" class="form-dep">
+        <label class="rotulo-oculto" for="d-pre">Pré-requisito</label>
+        <select id="d-pre"></select>
+        <span class="seta" aria-hidden="true">→</span>
+        <label class="rotulo-oculto" for="d-disc">Disciplina que depende</label>
+        <select id="d-disc"></select>
+        <button type="submit" class="botao">Ligar</button>
+      </form>
+      <p class="dica-bloco">O primeiro precisa ser cursado antes do segundo.</p>
+      <p class="erro-form" id="erro-dep" role="alert"></p>
+    </section>
+
+    <section class="bloco bloco-lista">
+      <div class="cabeca-lista">
+        <h2>Disciplinas <span id="contagem" class="contagem">0</span></h2>
+      </div>
+      <ul id="lista-disc" class="lista-disc"></ul>
+    </section>
+  </aside>
+
+  <section class="conteudo">
+    <div id="aviso" class="aviso" role="alert" hidden></div>
+
+    <div id="vazio" class="vazio" hidden>
+      <h2>Nenhuma disciplina cadastrada</h2>
+      <p>Cadastre disciplinas ao lado ou escolha um cenário de demonstração no topo.</p>
+    </div>
+
+    <div id="resultado">
+      <div id="resumo" class="resumo"></div>
+
+      <article class="cartao">
+        <div class="cartao-topo">
+          <h2>Grafo de pré-requisitos</h2>
+          <div class="controles">
+            <div class="alternador" id="alt-colunas" role="group" aria-label="Organizar colunas por" hidden>
+              <button type="button" data-colunas="grade" title="Colunas pelo período (SE) cadastrado na grade">Período da grade</button>
+              <button type="button" data-colunas="kahn" title="Colunas pelo período mínimo que os pré-requisitos permitem">Período mínimo</button>
+            </div>
+            <div class="alternador" id="alt-alg" role="group" aria-label="Algoritmo da animação">
+              <button type="button" data-alg="kahn" class="ativo">Kahn</button>
+              <button type="button" data-alg="dfs">DFS</button>
+            </div>
+            <div class="reprodutor" role="group" aria-label="Passo a passo">
+              <button type="button" id="b-inicio" title="Início">⏮</button>
+              <button type="button" id="b-anterior" title="Passo anterior">◀</button>
+              <button type="button" id="b-tocar" class="tocar" title="Reproduzir">▶ Reproduzir</button>
+              <button type="button" id="b-proximo" title="Próximo passo">▶</button>
+              <button type="button" id="b-fim" title="Fim">⏭</button>
+            </div>
+          </div>
+        </div>
+        <div class="passo-atual">
+          <span id="contador-passo" class="contador-passo"></span>
+          <span id="texto-passo"></span>
+        </div>
+        <div class="grafo-rolagem"><svg id="grafo" role="img" aria-label="Grafo de disciplinas"></svg></div>
+        <div class="faixa-ordem">
+          <span id="rotulo-ordem" class="rotulo-ordem"></span>
+          <div id="ordem-parcial" class="sequencia pequena"></div>
+        </div>
+        <ul id="legenda" class="legenda"></ul>
+      </article>
+
+      <article class="cartao">
+        <nav class="abas" role="tablist">
+          <button type="button" role="tab" data-aba="comparacao" class="ativa">Kahn × DFS</button>
+          <button type="button" role="tab" data-aba="periodos">Períodos</button>
+          <button type="button" role="tab" data-aba="passos">Passo a passo</button>
+          <button type="button" role="tab" data-aba="ordenacoes">Todas as ordenações</button>
+          <button type="button" role="tab" data-aba="adjacencia">Lista de adjacência</button>
+          <button type="button" role="tab" data-aba="complexidade">Complexidade</button>
+        </nav>
+        <div id="aba" class="aba" role="tabpanel"></div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  Alexandre Rezende Silva · Lucas dos Santos Pereira Martins — Sistemas de Informação, Turma 12 ·
+  Os algoritmos rodam em Java; esta página só exibe os resultados.
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
